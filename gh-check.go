@@ -45,9 +45,10 @@ func GitHubHasReadme(client *github.Client, url *GitHubUrl) (bool, error) {
 	owner := url.Owner
 	repo := url.Repository
 
-	content, _, err := client.Repositories.GetReadme(owner, repo, nil)
+	content, resp, err := client.Repositories.GetReadme(owner, repo, nil)
 
 	if err != nil {
+		fmt.Println(resp, err)
 		return false, err
 	}
 
@@ -81,12 +82,34 @@ func AddToProcess(client redis.Conn, url *GitHubUrl) error {
 	return err
 }
 
-func main() {
+func GitHubClient() *github.Client {
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: "efab2f1d9053080aac507ddab10272efea804398"},
+		&oauth2.Token{AccessToken: "foobar"},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 
+	return github.NewClient(tc)
+}
+
+func ProcessUrl(gh *github.Client, red redis.Conn, rawurl string) {
+	parsed, _ := ParseGitHubUrl(rawurl)
+
+	has, err := GitHubHasReadme(gh, parsed)
+	if err != nil {
+		fmt.Println("error", err)
+		return
+	}
+	fmt.Println("has readme", has)
+
+	allowed := GitHubRepoAllowed(red, parsed)
+
+	if has && allowed {
+		AddToBlacklist(red, parsed)
+		fmt.Println("is allowed", allowed)
+	}
+}
+
+func main() {
 	if len(os.Args) < 2 {
 		fmt.Printf("Usage: %s [github url]\n", os.Args[0])
 		return
@@ -98,14 +121,7 @@ func main() {
 		return
 	}
 
-	parsed, _ := ParseGitHubUrl(url)
-
-	fmt.Printf("owner: '%s'\nrepo: '%s'\n", parsed.Owner, parsed.Repository)
-
-	client := github.NewClient(tc)
-
-	has, _ := GitHubHasReadme(client, parsed)
-	fmt.Println("has readme", has)
+	client := GitHubClient()
 
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
@@ -114,10 +130,5 @@ func main() {
 	}
 	defer c.Close()
 
-	allowed := GitHubRepoAllowed(c, parsed)
-	fmt.Println("is allowed", allowed)
-
-	if has && allowed {
-		AddToBlacklist(c, parsed)
-	}
+	ProcessUrl(client, c, url)
 }
