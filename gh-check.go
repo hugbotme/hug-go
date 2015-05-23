@@ -4,20 +4,28 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	netUrl "net/url"
-	"os"
-	"strings"
-
-	"golang.org/x/oauth2"
-
 	"github.com/garyburd/redigo/redis"
 	"github.com/google/go-github/github"
+	"github.com/hugbotme/hug-go/twitter"
+	"golang.org/x/oauth2"
+	netUrl "net/url"
+	"strings"
 )
 
 type GitHubUrl struct {
 	Url        *netUrl.URL
 	Owner      string
 	Repository string
+}
+
+// tokenSource is an oauth2.TokenSource which returns a static access token
+type tokenSource struct {
+	token *oauth2.Token
+}
+
+// Token implements the oauth2.TokenSource interface
+func (t *tokenSource) Token() (*oauth2.Token, error) {
+	return t.token, nil
 }
 
 func ParseGitHubUrl(rawurl string) (*GitHubUrl, error) {
@@ -83,52 +91,28 @@ func AddToProcess(client redis.Conn, url *GitHubUrl) error {
 }
 
 func GitHubClient(access_token string) *github.Client {
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: access_token},
-	)
+	ts := &tokenSource{
+		token: &oauth2.Token{AccessToken: access_token},
+	}
+
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 
 	return github.NewClient(tc)
 }
 
-func ProcessUrl(gh *github.Client, red redis.Conn, rawurl string) {
-	parsed, _ := ParseGitHubUrl(rawurl)
+func ProcessUrl(gh *github.Client, red redis.Conn, hug twitter.Hug) error {
+	parsed, _ := ParseGitHubUrl(hug.Url)
 
 	has, err := GitHubHasReadme(gh, parsed)
 	if err != nil {
-		fmt.Println("error", err)
-		return
+		return err
 	}
-	fmt.Println("has readme", has)
 
 	allowed := GitHubRepoAllowed(red, parsed)
 
 	if has && allowed {
 		AddToBlacklist(red, parsed)
-		fmt.Println("is allowed", allowed)
-	}
-}
-
-func main() {
-	if len(os.Args) < 2 {
-		fmt.Printf("Usage: %s [github url]\n", os.Args[0])
-		return
 	}
 
-	url := os.Args[1]
-	if url == "" {
-		fmt.Printf("Usage: %s [github url]\n", os.Args[0])
-		return
-	}
-
-	client := GitHubClient("foobar")
-
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
-		fmt.Println("error", err)
-		return
-	}
-	defer c.Close()
-
-	ProcessUrl(client, c, url)
+	return nil
 }

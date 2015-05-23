@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/garyburd/redigo/redis"
 	"github.com/hugbotme/hug-go/config"
 	"github.com/hugbotme/hug-go/twitter"
 	"io/ioutil"
@@ -56,6 +57,13 @@ func main() {
 		log.Fatal("Configuration initialisation failed:", err)
 	}
 
+	githubClient := GitHubClient("foobar")
+	redisClient, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		log.Fatal("Redis client init failed:", err)
+	}
+	defer redisClient.Close()
+
 	hugs := make(chan twitter.Hug, 50)
 	// TODO: We don`t close channel hugs. We should do this.
 
@@ -66,6 +74,6 @@ func main() {
 	}
 
 	for hug := range hugs {
-		fmt.Println(hug)
+		ProcessUrl(githubClient, redisClient, hug)
 	}
 }
