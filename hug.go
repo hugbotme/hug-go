@@ -35,12 +35,16 @@ func init() {
 func connectRedis(config config.RedisConfiguration) redis.Conn {
 	redisClient, err := redis.Dial("tcp", config.Url)
 	if err != nil {
-		log.Fatal("Redis client init failed:", err)
-		os.Exit(2)
+		log.Fatal("Redis client init (connect) failed:", err)
 	}
+
+	if len(config.Auth) == 0 {
+		return redisClient
+	}
+
 	if _, err := redisClient.Do("AUTH", config.Auth); err != nil {
 		redisClient.Close()
-		os.Exit(2)
+		log.Fatal("Redis client init (auth) failed:", err)
 	}
 	return redisClient
 }
@@ -73,6 +77,7 @@ func main() {
 
 	githubClient := GitHubClient(config.Github.APIToken)
 	// TODO extract redis credentials to config
+
 	redisClient := connectRedis(config.Redis)
 	defer redisClient.Close()
 
