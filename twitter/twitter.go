@@ -13,8 +13,8 @@ type Twitter struct {
 }
 
 type Hug struct {
-	TweetId string
-	Url     string
+	TweetID string
+	URL     string
 }
 
 func NewClient(config *config.Configuration) *Twitter {
@@ -35,12 +35,18 @@ func NewClient(config *config.Configuration) *Twitter {
 // TODO Add support for sinceID
 // This is useful if this tool needs a restart
 func (client *Twitter) GetMentions(hugs chan Hug) {
-	//var sinceID string
-	//sinceID = ""
+	var sinceID string
+	var sinceIDSet bool
+	sinceID = ""
 
 	for {
+		sinceIDSet = false
+
 		v := url.Values{}
-		//v.Set("since_id", string(sinceID))
+		if len(sinceID) > 0 {
+			v.Set("since_id", sinceID)
+		}
+
 		mentions, err := client.API.GetMentionsTimeline(v)
 		if err != nil {
 			log.Printf("Twitter API GetMentionsTimeline-Error: %s", err)
@@ -52,11 +58,15 @@ func (client *Twitter) GetMentions(hugs chan Hug) {
 		}
 
 		for _, mention := range mentions {
-			//sinceID = mention.IdStr
+			if sinceIDSet == false {
+				sinceID = mention.IdStr
+				sinceIDSet = true
+			}
+
 			for _, link := range mention.Entities.Urls {
 				toHug := Hug{
-					TweetId: mention.IdStr,
-					Url:     link.Expanded_url,
+					TweetID: mention.IdStr,
+					URL:     link.Expanded_url,
 				}
 
 				hugs <- toHug

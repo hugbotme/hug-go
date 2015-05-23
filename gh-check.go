@@ -81,7 +81,7 @@ func CanonicalURL(url *GitHubURL) string {
 }
 
 func GitHubRepoAllowed(client redis.Conn, url *GitHubURL) bool {
-	b, err := redis.Bool(client.Do("EXIST", "blacklist:"+CanonicalURL(url)))
+	b, err := redis.Bool(client.Do("EXISTS", "blacklist:"+CanonicalURL(url)))
 	if err != nil {
 		return true
 	}
@@ -114,7 +114,7 @@ func GitHubClient(accessToken string) *github.Client {
 }
 
 func ProcessURL(gh *github.Client, red redis.Conn, hug twitter.Hug) (int, error) {
-	parsed, err := ParseGitHubURL(hug.Url)
+	parsed, err := ParseGitHubURL(hug.URL)
 	if err != nil {
 		return CheckURLParse, err
 	}
