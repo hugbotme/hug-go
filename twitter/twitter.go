@@ -5,7 +5,6 @@ import (
 	"github.com/hugbotme/hug-go/config"
 	"log"
 	"net/url"
-	"sync"
 	"time"
 )
 
@@ -36,43 +35,16 @@ func NewClient(config *config.Configuration) *Twitter {
 // TODO Add support for sinceID
 // This is useful if this tool needs a restart
 func (client *Twitter) GetMentions(hugs chan Hug, lastTweet *time.Time) {
-	var sinceID string
-	var sinceIDSet bool
-	sinceID = ""
+	v := url.Values{}
+	stream := client.API.UserStream(v)
+	for event := range stream.C {
 
-	var mutex = &sync.Mutex{}
-
-	for {
-		sinceIDSet = false
-
-		v := url.Values{}
-		if len(sinceID) > 0 {
-			v.Set("since_id", sinceID)
-		}
-
-		mentions, err := client.API.GetMentionsTimeline(v)
-		if err != nil {
-			log.Printf("Twitter API GetMentionsTimeline-Error: %s", err)
-			// Set API Request throttling, because of the twitter API Rate limit
-			// Currently 15 requests for a 15 minute window are allowed
-			// An alternative would be API throttling like api.SetDelay(60 * time.Second)
-			time.Sleep(60 * time.Second)
-			continue
-		}
-
-		for _, mention := range mentions {
-			if sinceIDSet == false {
-				sinceID = mention.IdStr
-				sinceIDSet = true
-
-				// Update last tweet Check
-				now := time.Now()
-				mutex.Lock()
-				lastTweet = &now
-				mutex.Unlock()
-			}
-
+		switch t := event.(type) {
+		case anaconda.Tweet:
+			log.Printf("Twitter stream: New event %T\n", t)
+			mention := event.(anaconda.Tweet)
 			for _, link := range mention.Entities.Urls {
+				log.Printf("Twitter stream: New hug for link %s\n", link.Expanded_url)
 				toHug := Hug{
 					TweetID: mention.IdStr,
 					URL:     link.Expanded_url,
@@ -80,10 +52,9 @@ func (client *Twitter) GetMentions(hugs chan Hug, lastTweet *time.Time) {
 
 				hugs <- toHug
 			}
-		}
 
-		// Set API Request throttling, because of the twitter API Rate limit
-		// Currently 15 requests for a 15 minute window are allowed
-		time.Sleep(60 * time.Second)
+		default:
+			log.Printf("Twitter stream: Unsupported event %T\n", t)
+		}
 	}
 }
