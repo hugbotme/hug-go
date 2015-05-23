@@ -72,7 +72,7 @@ func GitHubRepoAllowed(client redis.Conn, url *GitHubUrl) bool {
 }
 
 func AddToBlacklist(client redis.Conn, url *GitHubUrl) error {
-	_, err := client.Do("SET", "blacklist:"+CanonicalUrl(url), 1)
+	_, err := client.Do("SET", "blacklist:"+CanonicalUrl(url), 1, "EX", 7*24*60*60)
 	return err
 }
 
@@ -116,4 +116,8 @@ func main() {
 
 	allowed := GitHubRepoAllowed(c, parsed)
 	fmt.Println("is allowed", allowed)
+
+	if has && allowed {
+		AddToBlacklist(c, parsed)
+	}
 }
