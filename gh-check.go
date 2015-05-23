@@ -12,6 +12,13 @@ import (
 	"strings"
 )
 
+const (
+	CHECK_EVERYTHING_FINE = iota
+	CHECK_URL_PARSE
+	CHECK_HAS_NO_README
+	CHECK_IS_NOT_ALLOWED
+)
+
 type GitHubUrl struct {
 	Url        *netUrl.URL
 	Owner      string
@@ -100,19 +107,25 @@ func GitHubClient(access_token string) *github.Client {
 	return github.NewClient(tc)
 }
 
-func ProcessUrl(gh *github.Client, red redis.Conn, hug twitter.Hug) error {
-	parsed, _ := ParseGitHubUrl(hug.Url)
+func ProcessUrl(gh *github.Client, red redis.Conn, hug twitter.Hug) (int, error) {
+	parsed, err := ParseGitHubUrl(hug.Url)
+	if err != nil {
+		return CHECK_URL_PARSE, err
+	}
 
 	has, err := GitHubHasReadme(gh, parsed)
 	if err != nil {
-		return err
+		return CHECK_HAS_NO_README, err
 	}
 
 	allowed := GitHubRepoAllowed(red, parsed)
+	if !allowed {
+		return CHECK_IS_NOT_ALLOWED, nil
+	}
 
 	if has && allowed {
 		AddToBlacklist(red, parsed)
 	}
 
-	return nil
+	return CHECK_EVERYTHING_FINE, nil
 }
