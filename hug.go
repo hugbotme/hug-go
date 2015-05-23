@@ -74,19 +74,19 @@ func main() {
 	}
 
 	for hug := range hugs {
-		status, err := ProcessUrl(githubClient, redisClient, hug)
+		status, err := ProcessURL(githubClient, redisClient, hug)
 		if err != nil {
 			log.Println(err)
 		}
 
 		switch status {
-		case CHECK_EVERYTHING_FINE:
+		case CheckEverythingIsFine:
 			// TODO: Add to Redis
-		case CHECK_HAS_NO_README:
+		case CheckHasNoReadme:
 			// TODO: Tweet
-		case CHECK_IS_NOT_ALLOWED:
+		case CheckIsNotAllowed:
 			// TODO: Tweet
-		case CHECK_URL_PARSE:
+		case CheckURLParse:
 			// TODO: Tweet
 		}
 	}

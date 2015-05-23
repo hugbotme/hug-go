@@ -13,14 +13,14 @@ import (
 )
 
 const (
-	CHECK_EVERYTHING_FINE = iota
-	CHECK_URL_PARSE
-	CHECK_HAS_NO_README
-	CHECK_IS_NOT_ALLOWED
+	CheckEverythingIsFine = iota
+	CheckURLParse
+	CheckHasNoReadme
+	CheckIsNotAllowed
 )
 
-type GitHubUrl struct {
-	Url        *netUrl.URL
+type GitHubURL struct {
+	URL        *netUrl.URL
 	Owner      string
 	Repository string
 }
@@ -35,7 +35,7 @@ func (t *tokenSource) Token() (*oauth2.Token, error) {
 	return t.token, nil
 }
 
-func ParseGitHubUrl(rawurl string) (*GitHubUrl, error) {
+func ParseGitHubURL(rawurl string) (*GitHubURL, error) {
 	parsed, err := netUrl.Parse(rawurl)
 	if err != nil {
 		return nil, err
@@ -49,14 +49,14 @@ func ParseGitHubUrl(rawurl string) (*GitHubUrl, error) {
 	owner := splitted[1]
 	repository := splitted[2]
 
-	return &GitHubUrl{
-		Url:        parsed,
+	return &GitHubURL{
+		URL:        parsed,
 		Owner:      owner,
 		Repository: repository,
 	}, nil
 }
 
-func GitHubHasReadme(client *github.Client, url *GitHubUrl) (bool, error) {
+func GitHubHasReadme(client *github.Client, url *GitHubURL) (bool, error) {
 	owner := url.Owner
 	repo := url.Repository
 
@@ -75,31 +75,31 @@ func GitHubHasReadme(client *github.Client, url *GitHubUrl) (bool, error) {
 	return true, nil
 }
 
-func CanonicalUrl(url *GitHubUrl) string {
+func CanonicalURL(url *GitHubURL) string {
 	return "http://github.com/" + url.Owner + "/" + url.Repository
 }
 
-func GitHubRepoAllowed(client redis.Conn, url *GitHubUrl) bool {
-	b, err := redis.Bool(client.Do("EXIST", "blacklist:"+CanonicalUrl(url)))
+func GitHubRepoAllowed(client redis.Conn, url *GitHubURL) bool {
+	b, err := redis.Bool(client.Do("EXIST", "blacklist:"+CanonicalURL(url)))
 	if err != nil {
 		return true
 	}
 	return !b
 }
 
-func AddToBlacklist(client redis.Conn, url *GitHubUrl) error {
-	_, err := client.Do("SET", "blacklist:"+CanonicalUrl(url), 1, "EX", 7*24*60*60)
+func AddToBlacklist(client redis.Conn, url *GitHubURL) error {
+	_, err := client.Do("SET", "blacklist:"+CanonicalURL(url), 1, "EX", 7*24*60*60)
 	return err
 }
 
-func AddToProcess(client redis.Conn, url *GitHubUrl) error {
-	_, err := client.Do("RPUSH", "hugbot:urls", CanonicalUrl(url))
+func AddToProcess(client redis.Conn, url *GitHubURL) error {
+	_, err := client.Do("RPUSH", "hugbot:urls", CanonicalURL(url))
 	return err
 }
 
-func GitHubClient(access_token string) *github.Client {
+func GitHubClient(accessToken string) *github.Client {
 	ts := &tokenSource{
-		token: &oauth2.Token{AccessToken: access_token},
+		token: &oauth2.Token{AccessToken: accessToken},
 	}
 
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
@@ -107,25 +107,25 @@ func GitHubClient(access_token string) *github.Client {
 	return github.NewClient(tc)
 }
 
-func ProcessUrl(gh *github.Client, red redis.Conn, hug twitter.Hug) (int, error) {
-	parsed, err := ParseGitHubUrl(hug.Url)
+func ProcessURL(gh *github.Client, red redis.Conn, hug twitter.Hug) (int, error) {
+	parsed, err := ParseGitHubURL(hug.Url)
 	if err != nil {
-		return CHECK_URL_PARSE, err
+		return CheckURLParse, err
 	}
 
 	has, err := GitHubHasReadme(gh, parsed)
 	if err != nil {
-		return CHECK_HAS_NO_README, err
+		return CheckHasNoReadme, err
 	}
 
 	allowed := GitHubRepoAllowed(red, parsed)
 	if !allowed {
-		return CHECK_IS_NOT_ALLOWED, nil
+		return CheckIsNotAllowed, nil
 	}
 
 	if has && allowed {
 		AddToBlacklist(red, parsed)
 	}
 
-	return CHECK_EVERYTHING_FINE, nil
+	return CheckEverythingIsFine, nil
 }
