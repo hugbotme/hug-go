@@ -2,12 +2,13 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"github.com/google/go-github/github"
 	"github.com/hugbotme/hug-go/twitter"
 	"golang.org/x/oauth2"
+	"log"
 	netUrl "net/url"
 	"strings"
 )
@@ -63,7 +64,7 @@ func GitHubHasReadme(client *github.Client, url *GitHubURL) (bool, error) {
 	content, resp, err := client.Repositories.GetReadme(owner, repo, nil)
 
 	if err != nil {
-		fmt.Println(resp, err)
+		log.Println(resp, err)
 		return false, err
 	}
 
@@ -92,8 +93,13 @@ func AddToBlacklist(client redis.Conn, url *GitHubURL) error {
 	return err
 }
 
-func AddToProcess(client redis.Conn, url *GitHubURL) error {
-	_, err := client.Do("RPUSH", "hugbot:urls", CanonicalURL(url))
+func AddToQueue(client redis.Conn, hug *twitter.Hug) error {
+	jsonHug, err := json.Marshal(hug)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.Do("RPUSH", "hug:queue", string(jsonHug))
 	return err
 }
 

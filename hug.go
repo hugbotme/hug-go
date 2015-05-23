@@ -81,7 +81,7 @@ func main() {
 
 		switch status {
 		case CheckEverythingIsFine:
-			// TODO: Add to Redis
+			AddToQueue(redisClient, &hug)
 		case CheckHasNoReadme:
 			// TODO: Tweet
 		case CheckIsNotAllowed:
