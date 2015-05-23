@@ -7,6 +7,7 @@ import (
 
 type Configuration struct {
 	Twitter twitterConfiguration `json:"twitter"`
+	Github  GithubConfiguration  `json:"github"`
 }
 
 type twitterConfiguration struct {
@@ -14,6 +15,10 @@ type twitterConfiguration struct {
 	ConsumerSecret    string `json:"consumer-secret"`
 	AccessToken       string `json:"access-token"`
 	AccessTokenSecret string `json:"access-token-secret"`
+}
+
+type GithubConfiguration struct {
+	APIToken string `json:"api-token"`
 }
 
 func NewConfiguration(configFile *string) (*Configuration, error) {

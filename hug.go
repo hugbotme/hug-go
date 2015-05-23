@@ -57,7 +57,8 @@ func main() {
 		log.Fatal("Configuration initialisation failed:", err)
 	}
 
-	githubClient := GitHubClient("foobar")
+	githubClient := GitHubClient(config.Github.APIToken)
+	// TODO extract redis credentials to config
 	redisClient, err := redis.Dial("tcp", ":6379")
 	if err != nil {
 		log.Fatal("Redis client init failed:", err)
