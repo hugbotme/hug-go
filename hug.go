@@ -32,6 +32,19 @@ func init() {
 	flagVersion = flag.Bool("version", false, "Outputs the version number and exits")
 }
 
+func connectRedis(config config.RedisConfiguration) redis.Conn {
+	redisClient, err := redis.Dial("tcp", config.Url)
+	if err != nil {
+		log.Fatal("Redis client init failed:", err)
+		os.Exit(2)
+	}
+	if _, err := redisClient.Do("AUTH", config.Auth); err != nil {
+		redisClient.Close()
+		os.Exit(2)
+	}
+	return redisClient
+}
+
 func main() {
 	flag.Parse()
 
@@ -60,10 +73,7 @@ func main() {
 
 	githubClient := GitHubClient(config.Github.APIToken)
 	// TODO extract redis credentials to config
-	redisClient, err := redis.Dial("tcp", ":6379")
-	if err != nil {
-		log.Fatal("Redis client init failed:", err)
-	}
+	redisClient := connectRedis(config.Redis)
 	defer redisClient.Close()
 
 	hugs := make(chan twitter.Hug, 50)
