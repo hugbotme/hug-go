@@ -26,3 +26,4 @@ _testmain.go
 # Application binaries
 hug-go
 hug
+config.json
