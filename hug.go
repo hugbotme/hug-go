@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/garyburd/redigo/redis"
 	"github.com/hugbotme/hug-go/config"
 	"github.com/hugbotme/hug-go/twitter"
 	"io/ioutil"
@@ -30,19 +29,6 @@ func init() {
 	flagConfigFile = flag.String("config", "", "Configuration file")
 	flagPidFile = flag.String("pidfile", "", "Write the process id into a given file")
 	flagVersion = flag.Bool("version", false, "Outputs the version number and exits")
-}
-
-func connectRedis(config config.RedisConfiguration) redis.Conn {
-	redisClient, err := redis.Dial("tcp", config.Url)
-	if err != nil {
-		log.Fatal("Redis client init failed:", err)
-		os.Exit(2)
-	}
-	if _, err := redisClient.Do("AUTH", config.Auth); err != nil {
-		redisClient.Close()
-		os.Exit(2)
-	}
-	return redisClient
 }
 
 func main() {
@@ -72,8 +58,7 @@ func main() {
 	}
 
 	githubClient := GitHubClient(config.Github.APIToken)
-	// TODO extract redis credentials to config
-	redisClient := connectRedis(config.Redis)
+	redisClient := config.ConnectRedis()
 	defer redisClient.Close()
 
 	hugs := make(chan twitter.Hug, 50)

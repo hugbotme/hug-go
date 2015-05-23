@@ -2,7 +2,10 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/garyburd/redigo/redis"
 	"io/ioutil"
+	"log"
+	"os"
 )
 
 type Configuration struct {
@@ -40,4 +43,17 @@ func NewConfiguration(configFile *string) (*Configuration, error) {
 	}
 
 	return &config, nil
+}
+
+func (config *Configuration) ConnectRedis() redis.Conn {
+	redisClient, err := redis.Dial("tcp", config.Redis.Url)
+	if err != nil {
+		log.Fatal("Redis client init failed:", err)
+		os.Exit(2)
+	}
+	if _, err := redisClient.Do("AUTH", config.Redis.Auth); err != nil {
+		redisClient.Close()
+		os.Exit(2)
+	}
+	return redisClient
 }
