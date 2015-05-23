@@ -5,6 +5,7 @@ import (
 	"github.com/hugbotme/hug-go/config"
 	"log"
 	"net/url"
+	"sync"
 	"time"
 )
 
@@ -34,10 +35,12 @@ func NewClient(config *config.Configuration) *Twitter {
 
 // TODO Add support for sinceID
 // This is useful if this tool needs a restart
-func (client *Twitter) GetMentions(hugs chan Hug) {
+func (client *Twitter) GetMentions(hugs chan Hug, lastTweet *time.Time) {
 	var sinceID string
 	var sinceIDSet bool
 	sinceID = ""
+
+	var mutex = &sync.Mutex{}
 
 	for {
 		sinceIDSet = false
@@ -61,6 +64,12 @@ func (client *Twitter) GetMentions(hugs chan Hug) {
 			if sinceIDSet == false {
 				sinceID = mention.IdStr
 				sinceIDSet = true
+
+				// Update last tweet Check
+				now := time.Now()
+				mutex.Lock()
+				lastTweet = &now
+				mutex.Unlock()
 			}
 
 			for _, link := range mention.Entities.Urls {

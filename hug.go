@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 )
 
 var (
@@ -66,13 +67,16 @@ func main() {
 	defer redisClient.Close()
 
 	hugs := make(chan twitter.Hug, 50)
+	var lastTweet time.Time
 	// TODO: We don`t close channel hugs. We should do this.
 
 	client := twitter.NewClient(config)
-	go client.GetMentions(hugs)
+	go client.GetMentions(hugs, &lastTweet)
 	if err != nil {
 		log.Fatal("Twitter client GetMentions failed:", err)
 	}
+
+	go QueueTrendingRepositoryWhenIamBored(hugs, &lastTweet, githubClient, redisClient)
 
 	for hug := range hugs {
 		status, err := ProcessURL(githubClient, redisClient, hug)

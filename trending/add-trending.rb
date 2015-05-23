@@ -15,5 +15,5 @@ redis = Redic.new
 repos = Github::Trending.get
 repos.each do |r|
   owner, repo = r.name.split("/")
-  redis.call "SADD", "hugbot:bored-urls", canonicalize(owner, repo)
+  redis.call "SADD", "hug:bored-urls", canonicalize(owner, repo)
 end
