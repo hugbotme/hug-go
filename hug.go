@@ -74,10 +74,14 @@ func main() {
 	go QueueTrendingRepositoryWhenIamBored(hugs, &lastTweet, githubClient, redisClient)
 
 	for hug := range hugs {
+		log.Print("Got a new hug", hug)
 		status, err := ProcessURL(githubClient, redisClient, hug)
 		if err != nil {
-			log.Println(err)
+			log.Println("ProcessURL failed", err)
+			continue
 		}
+
+		log.Println("ProcessURL", status)
 
 		switch status {
 		case CheckEverythingIsFine:

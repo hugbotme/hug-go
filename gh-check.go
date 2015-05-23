@@ -83,6 +83,7 @@ func CanonicalURL(url *GitHubURL) string {
 func GitHubRepoAllowed(client redis.Conn, url *GitHubURL) bool {
 	b, err := redis.Bool(client.Do("EXISTS", "blacklist:"+CanonicalURL(url)))
 	if err != nil {
+		log.Fatal("EXIST failed", err)
 		return true
 	}
 	return !b
@@ -100,6 +101,9 @@ func AddToQueue(client redis.Conn, hug *twitter.Hug) error {
 	}
 
 	_, err = client.Do("RPUSH", "hug:queue", string(jsonHug))
+	if err != nil {
+		log.Fatal("RPUSH failed", err)
+	}
 	return err
 }
 
