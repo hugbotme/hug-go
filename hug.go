@@ -58,6 +58,7 @@ func main() {
 	}
 
 	githubClient := GitHubClient(config.Github.APIToken)
+
 	redisClient := config.ConnectRedis()
 	defer redisClient.Close()
 
