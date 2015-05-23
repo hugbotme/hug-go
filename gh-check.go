@@ -82,9 +82,9 @@ func AddToProcess(client redis.Conn, url *GitHubUrl) error {
 	return err
 }
 
-func GitHubClient() *github.Client {
+func GitHubClient(access_token string) *github.Client {
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: "foobar"},
+		&oauth2.Token{AccessToken: access_token},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 
@@ -121,7 +121,7 @@ func main() {
 		return
 	}
 
-	client := GitHubClient()
+	client := GitHubClient("foobar")
 
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
