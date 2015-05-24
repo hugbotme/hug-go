@@ -2,4 +2,4 @@
 
 [![Build Status](https://travis-ci.org/hugbotme/hug-go.svg?branch=master)](https://travis-ci.org/hugbotme/hug-go)
 
-TODO
+sharimg the love, one pullrequest at a time.
