@@ -47,6 +47,10 @@ func ParseGitHubURL(rawurl string) (*GitHubURL, error) {
 	}
 
 	splitted := strings.Split(parsed.Path, "/")
+	if len(splitted) < 3 {
+		return nil, errors.New("Broken GitHub URL")
+	}
+
 	owner := splitted[1]
 	repository := splitted[2]
 
