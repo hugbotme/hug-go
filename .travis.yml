@@ -1,4 +1,1 @@
 language: go
-
-before_script:
-    - apt-get install aspell
