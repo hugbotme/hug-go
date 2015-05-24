@@ -27,6 +27,12 @@ func QueueTrendingTopic(hugs chan twitter.Hug, gh *github.Client, redisClient re
 	url, err := redis.String(redisClient.Do("SPOP", "hug:bored-urls"))
 	if err != nil {
 		log.Println(err)
+		return
+	}
+
+	if len(url) == 0 {
+		log.Println("Trending topics: No topics in Redis")
+		return
 	}
 
 	toHug := twitter.Hug{
